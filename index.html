@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0B2B45">
+<meta name="description" content="鲸鱼灯 —— 面向 Windows 的本地桌面工作台：待办、日历排班、刷题、随心记、资料、记账、通讯录、保险箱、C 盘清理与文件搜索，一个窗口全收。">
+<title>鲸鱼灯 · 本地桌面工作台</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230B2B45'/%3E%3Cpath d='M8 20c4 0 5-6 8-6s4 6 8 6' fill='none' stroke='%23F2B24B' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='11' r='3' fill='%236CC6F5'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --ink:#0B1D2E;
+    --ink-soft:#2C4356;
+    --muted:#61788B;
+    --line:#DCE7F1;
+    --paper:#F5F9FD;
+    --card:#FFFFFF;
+    --brand:#0E4C74;
+    --brand-deep:#0B2B45;
+    --accent:#1E8CC8;
+    --lamp:#F2B24B;
+    --ok:#17795E;
+    --radius:18px;
+    --shadow:0 18px 50px -22px rgba(11,43,69,.35);
+    --wrap:1120px;
+    --font:"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font);
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.65;
+    font-size:16px;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  img,svg{max-width:100%}
+  a{color:var(--brand);text-decoration:none}
+  a:hover{color:var(--accent)}
+  .wrap{width:100%;max-width:var(--wrap);margin:0 auto;padding:0 28px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+  /* ---------- 顶栏 ---------- */
+  .top{
+    position:sticky;top:0;z-index:20;
+    background:rgba(245,249,253,.86);
+    backdrop-filter:saturate(140%) blur(10px);
+    border-bottom:1px solid rgba(220,231,241,.9);
+  }
+  .top-in{display:flex;align-items:center;gap:14px;height:66px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--ink);letter-spacing:.01em}
+  .brand:hover{color:var(--ink)}
+  .brand-mark{width:32px;height:32px;flex:0 0 32px;border-radius:9px;display:block}
+  .brand-name{font-size:17px}
+  .top-nav{margin-left:auto;display:flex;align-items:center;gap:6px}
+  .top-nav a{
+    padding:8px 12px;border-radius:10px;color:var(--ink-soft);font-size:14px;font-weight:500;
+    white-space:nowrap;
+  }
+  .top-nav a:hover{background:#E8F1F9;color:var(--brand)}
+  .top-nav a.cta{background:var(--brand);color:#fff}
+  .top-nav a.cta:hover{background:var(--brand-deep);color:#fff}
+  @media (max-width:640px){
+    .top-nav a:not(.cta){display:none}
+    .top-in{height:58px}
+    .brand-name{font-size:16px}
+  }
+
+  /* ---------- 首屏 ---------- */
+  .hero{position:relative;overflow:hidden;padding:72px 0 56px}
+  .hero::before,.hero::after{content:"";position:absolute;border-radius:50%;pointer-events:none;filter:blur(2px)}
+  .hero::before{
+    width:560px;height:560px;right:-180px;top:-220px;
+    background:radial-gradient(circle at 35% 35%,rgba(30,140,200,.18),rgba(30,140,200,0) 68%);
+  }
+  .hero::after{
+    width:420px;height:420px;left:-160px;bottom:-220px;
+    background:radial-gradient(circle at 50% 50%,rgba(242,178,75,.20),rgba(242,178,75,0) 70%);
+  }
+  .hero-grid{
+    position:relative;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
+    gap:48px;align-items:center;
+  }
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    background:#E7F2FA;color:var(--brand);
+    border:1px solid #CFE4F3;border-radius:999px;
+    padding:5px 12px;font-size:13px;font-weight:600;letter-spacing:.02em;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(23,121,94,.12)}
+  h1{
+    font-size:clamp(38px,5.2vw,60px);line-height:1.14;letter-spacing:-.02em;
+    margin:20px 0 16px;font-weight:800;color:var(--brand-deep);
+    overflow-wrap:break-word;
+  }
+  h1 .thin{font-weight:300;color:var(--brand)}
+  .lede{font-size:clamp(16px,1.5vw,18px);color:var(--ink-soft);margin:0 0 26px;max-width:34em}
+  .lede strong{color:var(--brand);font-weight:600}
+  .hero-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    border-radius:12px;padding:13px 22px;font-size:15px;font-weight:650;
+    border:1px solid transparent;cursor:pointer;transition:transform .15s ease,background .15s ease,box-shadow .15s ease;
+    max-width:100%;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{
+    background:linear-gradient(180deg,#12577F,#0B3E5E);
+    color:#fff;box-shadow:0 12px 26px -12px rgba(11,62,94,.75);
+  }
+  .btn-primary:hover{color:#fff;background:linear-gradient(180deg,#14658F,#0B2B45)}
+  .btn-ghost{background:#fff;border-color:var(--line);color:var(--ink-soft)}
+  .btn-ghost:hover{background:#F0F7FC;color:var(--brand)}
+  .btn svg{width:18px;height:18px;flex:0 0 18px}
+  .btn[hidden]{display:none}
+  .hero-note{
+    margin:16px 0 0;font-size:13.5px;color:var(--muted);
+    display:flex;gap:8px;align-items:flex-start;
+  }
+  .hero-note svg{width:15px;height:15px;flex:0 0 15px;margin-top:3px;color:var(--muted)}
+  .quick{display:flex;flex-wrap:wrap;gap:18px;margin:26px 0 0;padding:0;list-style:none;color:var(--muted);font-size:14px}
+  .quick li{display:flex;align-items:center;gap:7px}
+  .quick svg{width:16px;height:16px;color:var(--ok);flex:0 0 16px}
+
+  /* 下载卡片 */
+  .card-dl{
+    background:var(--card);border:1px solid var(--line);border-radius:24px;
+    padding:26px;box-shadow:var(--shadow);position:relative;
+  }
+  .dl-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+  .dl-logo{width:48px;height:48px;flex:0 0 48px;border-radius:13px;box-shadow:0 8px 18px -10px rgba(11,43,69,.6)}
+  .dl-title{margin:0;font-size:17px;font-weight:700;line-height:1.3}
+  .dl-sub{margin:2px 0 0;font-size:13px;color:var(--muted)}
+  .dl-rows{border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);padding:12px 0;margin:0 0 18px}
+  .dl-row{display:flex;justify-content:space-between;gap:16px;font-size:13.5px;padding:5px 0}
+  .dl-row span:first-child{color:var(--muted)}
+  .dl-row span:last-child{font-weight:600;color:var(--ink-soft);text-align:right;overflow-wrap:anywhere}
+  .ver-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#EAF5EC;color:var(--ok);border-radius:999px;
+    padding:2px 9px;font-size:12.5px;font-weight:700;
+  }
+  .card-dl .btn{width:100%}
+  .card-dl .btn + .btn{margin-top:10px}
+  .dl-foot{margin:14px 0 0;font-size:12.5px;color:var(--muted);line-height:1.6;overflow-wrap:anywhere}
+  .dl-foot a{font-weight:600}
+
+  @media (max-width:900px){
+    .hero{padding:52px 0 40px}
+    .hero-grid{grid-template-columns:minmax(0,1fr);gap:34px}
+    .card-dl{max-width:520px}
+  }
+  @media (max-width:420px){
+    .wrap{padding:0 18px}
+    .card-dl{padding:20px}
+    .hero-actions .btn{width:100%}
+  }
+
+  /* ---------- 通用区块 ---------- */
+  section{padding:64px 0}
+  .sec-head{max-width:640px;margin:0 0 34px}
+  .sec-kicker{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+  h2{font-size:clamp(26px,3vw,34px);line-height:1.25;letter-spacing:-.01em;margin:0 0 12px;color:var(--brand-deep);font-weight:800}
+  .sec-head p{margin:0;color:var(--muted)}
+  .band{background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+
+  /* ---------- 安装 ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;counter-reset:step}
+  .step{
+    position:relative;background:var(--paper);border:1px solid var(--line);
+    border-radius:var(--radius);padding:22px 20px 20px;
+  }
+  .step::before{
+    counter-increment:step;content:counter(step);
+    display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:28px;border-radius:9px;background:var(--brand);color:#fff;
+    font-size:14px;font-weight:700;margin-bottom:12px;
+  }
+  .step h3{margin:0 0 8px;font-size:16px;color:var(--brand-deep)}
+  .step p{margin:0;font-size:14px;color:var(--ink-soft)}
+  .step code,.inline-code{
+    font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+    font-size:.9em;background:#E8F1F9;color:var(--brand);
+    padding:1px 6px;border-radius:6px;overflow-wrap:anywhere;
+  }
+  .callout{
+    display:flex;gap:14px;align-items:flex-start;
+    margin-top:22px;padding:18px 20px;border-radius:var(--radius);
+    background:#FFF8E8;border:1px solid #F3E0B6;
+  }
+  .callout svg{width:20px;height:20px;flex:0 0 20px;color:#B7791F;margin-top:2px}
+  .callout p{margin:0;font-size:14px;color:#6B4E16}
+  .callout b{color:#5A3F0D}
+  @media (max-width:820px){.steps{grid-template-columns:minmax(0,1fr)}}
+
+  /* ---------- 功能 ---------- */
+  .feat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+  .feat{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:20px 18px;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
+  }
+  .feat:hover{transform:translateY(-2px);border-color:#C4DCEE;box-shadow:0 14px 30px -20px rgba(11,43,69,.4)}
+  .feat-icon{
+    width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    background:#EAF4FB;color:var(--brand);margin-bottom:13px;
+  }
+  .feat-icon svg{width:20px;height:20px}
+  .feat h3{margin:0 0 5px;font-size:15.5px;color:var(--brand-deep)}
+  .feat p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.6}
+  @media (max-width:1000px){.feat-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width:760px){.feat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (max-width:430px){.feat-grid{grid-template-columns:minmax(0,1fr)}}
+
+  /* ---------- 系统要求 ---------- */
+  .req{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:20px;align-items:stretch}
+  .req-box{background:var(--brand-deep);color:#DCEAF5;border-radius:22px;padding:30px}
+  .req-box h2{color:#fff;margin-bottom:14px}
+  .req-box p{color:#B9D2E4;margin:0 0 20px}
+  .req-list{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+  .req-list li{display:flex;gap:11px;align-items:flex-start;font-size:14.5px}
+  .req-list svg{width:17px;height:17px;flex:0 0 17px;margin-top:3px;color:#7FD3B8}
+  .req-side{background:#fff;border:1px solid var(--line);border-radius:22px;padding:30px}
+  .req-side h3{margin:0 0 10px;font-size:17px;color:var(--brand-deep)}
+  .req-side p{margin:0 0 18px;font-size:14px;color:var(--muted)}
+  .req-side .btn{width:100%}
+  @media (max-width:820px){.req{grid-template-columns:minmax(0,1fr)}.req-box,.req-side{padding:24px}}
+
+  /* ---------- 页脚 ---------- */
+  footer{background:#081B2A;color:#9FB8CB;padding:44px 0 30px;font-size:13.5px}
+  .foot-top{display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-start;padding-bottom:24px;border-bottom:1px solid rgba(159,184,203,.16)}
+  .foot-brand{display:flex;align-items:center;gap:10px;color:#E7F1F8;font-weight:700;font-size:16px}
+  .foot-brand svg{width:26px;height:26px;flex:0 0 26px}
+  .foot-links{display:flex;flex-wrap:wrap;gap:8px 20px}
+  .foot-links a{color:#B9CFDF}
+  .foot-links a:hover{color:#fff}
+  .foot-note{margin:20px 0 0;line-height:1.8;color:#7F98AB;max-width:70em}
+  .foot-note b{color:#B9CFDF;font-weight:600}
+  footer .inline-code{background:rgba(185,207,223,.14);color:#CFE0EE}
+  .foot-meta{margin:14px 0 0;color:#6C8397;font-size:12.5px}
+  .foot-meta span{color:#8FA9BC}
+  @media (max-width:600px){.foot-top{flex-direction:column;gap:16px}}
+</style>
+</head>
+<body>
+
+<!-- 图标精灵：全部内联，无外部依赖 -->
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <symbol id="i-logo" viewBox="0 0 48 48">
+      <rect width="48" height="48" rx="13" fill="#0B2B45"/>
+      <circle cx="24" cy="17" r="5" fill="#6CC6F5"/>
+      <path d="M11 31c5.5 0 7.5-8 13-8s7.5 8 13 8" fill="none" stroke="#F2B24B" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M15 37h18" stroke="#2C6E96" stroke-width="2.6" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4 20h16"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4.5 12.5l5 5 10-11"/>
+    </symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>
+    </symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+    </symbol>
+    <symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5A2.5 2.5 0 0 1 4 20.5z"/>
+    </symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 20l4.2-1 10-10-3.2-3.2-10 10z"/><path d="M14.2 5.4l3.2 3.2"/>
+    </symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    </symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><circle cx="17" cy="14.5" r="1.1"/>
+    </symbol>
+    <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="8" r="3"/><path d="M3.8 20a5.4 5.4 0 0 1 10.4 0"/><path d="M16 5.6a3 3 0 0 1 0 5.8"/><path d="M17.6 20a5.4 5.4 0 0 0-2.4-4.5"/>
+    </symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="10" width="16" height="10" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v2"/>
+    </symbol>
+    <symbol id="i-clean" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 20l7-7"/><path d="M9.5 8.5l6.5 6.5"/><path d="M15 3l1 2.3 2.3 1L16 7.4 15 9.7l-1-2.3-2.3-1.1 2.3-1z"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="6"/><path d="M16 16l4.5 4.5"/>
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3l7 3v6c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/>
+    </symbol>
+    <symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 3h7l5 5v13H6z"/><path d="M13 3v5h5"/><path d="M9 13h6M9 17h6"/>
+    </symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4.2h-4.2"/>
+    </symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3.5L21 19H3z"/><path d="M12 9v5"/><path d="M12 17h.01"/>
+    </symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="#top">
+      <svg class="brand-mark" aria-hidden="true"><use href="#i-logo"/></svg>
+      <span class="brand-name">鲸鱼灯</span>
+    </a>
+    <nav class="top-nav" aria-label="页面导航">
+      <a href="#install">安装</a>
+      <a href="#features">功能</a>
+      <a href="https://github.com/mraphasia/whale-lamp-releases/releases" target="_blank" rel="noopener">更新日志</a>
+      <a class="cta" href="#download">下载</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- 首屏 -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow"><span class="dot" aria-hidden="true"></span>Windows 桌面 · 本地优先 · 免安装</span>
+        <h1 id="hero-title">鲸鱼灯<br><span class="thin">把日常收进一个窗口</span></h1>
+        <p class="lede">
+          待办、日历排班、天气、刷题、随心记、资料、记账、通讯录、保险箱、C 盘清理与文件搜索，
+          全部装在同一个 <strong>本地桌面工作台</strong>里。数据留在你自己的电脑上，不注册、不上传。
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" id="dl" href="https://github.com/mraphasia/whale-lamp-releases/releases/latest/download/whale-lamp-onedir.zip">
+            <svg aria-hidden="true"><use href="#i-download"/></svg>
+            下载鲸鱼灯
+          </a>
+          <a class="btn btn-ghost" id="dl-versioned" href="https://github.com/mraphasia/whale-lamp-releases/releases" target="_blank" rel="noopener" hidden>带版本号直链</a>
+        </div>
+        <p class="hero-note">
+          <svg aria-hidden="true"><use href="#i-info"/></svg>
+          <span>主按钮使用永久下载地址。若发布资产未按固定名称上传，页面会自动改用带版本号的直链，下方也会给出备用入口。</span>
+        </p>
+        <ul class="quick">
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg>数据全部本地保存</li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg>无需注册与联网</li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg>内置在线更新</li>
+        </ul>
+      </div>
+
+      <aside class="card-dl" id="download" aria-label="下载信息">
+        <div class="dl-head">
+          <svg class="dl-logo" aria-hidden="true"><use href="#i-logo"/></svg>
+          <div>
+            <p class="dl-title">鲸鱼灯</p>
+            <p class="dl-sub">Windows 10 / 11 · 64 位 · 免安装</p>
+          </div>
+        </div>
+        <div class="dl-rows">
+          <div class="dl-row">
+            <span>最新版本</span>
+            <span><span class="ver-pill"><span class="js-version">最新版</span></span></span>
+          </div>
+          <div class="dl-row">
+            <span>安装包大小</span>
+            <span class="js-size">约 66 MB</span>
+          </div>
+          <div class="dl-row">
+            <span>文件格式</span>
+            <span>ZIP（解压即用）</span>
+          </div>
+          <div class="dl-row">
+            <span>界面语言</span>
+            <span>简体中文</span>
+          </div>
+        </div>
+        <a class="btn btn-primary" id="dl-card" href="https://github.com/mraphasia/whale-lamp-releases/releases/latest/download/whale-lamp-onedir.zip">
+          <svg aria-hidden="true"><use href="#i-download"/></svg>
+          下载最新版本
+        </a>
+        <p class="dl-foot">
+          下载慢或按钮无效？到
+          <a href="https://github.com/mraphasia/whale-lamp-releases/releases" target="_blank" rel="noopener">Releases 页面</a>
+          选择带版本号的压缩包（例如 <span class="inline-code js-asset">whale-lamp-x.y.z-onedir.zip</span>）。
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 安装 -->
+  <section class="band" id="install" aria-labelledby="install-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="sec-kicker">三步开始</p>
+        <h2 id="install-title">解压、运行，就这一步</h2>
+        <p>鲸鱼灯是绿色免安装的 onedir 程序，不写注册表、不需要管理员权限。</p>
+      </div>
+      <div class="steps">
+        <article class="step">
+          <h3>解压到普通文件夹</h3>
+          <p>把压缩包解压到 <span class="inline-code">D:\鲸鱼灯</span> 这类你有写权限的位置，<b>不要</b>放进 <span class="inline-code">Program Files</span>，否则自动更新会因权限失败。</p>
+        </article>
+        <article class="step">
+          <h3>运行主程序</h3>
+          <p>进入解压出的 <span class="inline-code">鲸鱼灯</span> 目录，双击 <span class="inline-code">鲸鱼灯\鲸鱼灯.exe</span>。整个目录要一起保留，<b>不要</b>只把 exe 拖出来。</p>
+        </article>
+        <article class="step">
+          <h3>数据放到目录外</h3>
+          <p>首次启动后到「设置 → 存储路径」，把数据库指到安装目录之外（例如 <span class="inline-code">D:\鲸鱼灯数据</span>），升级时数据不会被动到。</p>
+        </article>
+      </div>
+      <div class="callout">
+        <svg aria-hidden="true"><use href="#i-warn"/></svg>
+        <p><b>SmartScreen 提示：</b>若出现“Windows 已保护你的电脑”，点「更多信息」→「仍要运行」即可。软件没有购买代码签名证书，这是未签名程序的正常提示；校验下载完整性可对照 Releases 页面或 <span class="inline-code">latest.json</span> 中的 SHA256。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 功能 -->
+  <section id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="sec-kicker">功能概览</p>
+        <h2 id="features-title">一个窗口，装下日常</h2>
+        <p>从早上排班到晚上记账，常用的小工具都在这里，彼此数据打通。</p>
+      </div>
+      <div class="feat-grid">
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-check"/></svg></div><h3>首页待办</h3><p>清单勾选、拖拽排序、到期色条，逾期与今天一眼可见。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-calendar"/></svg></div><h3>日历排班</h3><p>月历切换、固定班与周期班，回看与安排都直观。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-sun"/></svg></div><h3>天气与每日一句</h3><p>自动定位显示天气，失败时降级为「暂无天气」，不打断使用。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-book"/></svg></div><h3>刷题</h3><p>题库管理、错题集、收藏夹、模拟考试与学习统计。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-pen"/></svg></div><h3>随心记</h3><p>富文本编辑、附件与图片、打印，旧日记可一键迁入。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-folder"/></svg></div><h3>资料库</h3><p>文档入库、分组收藏、全文搜索与 PDF 阅读。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-wallet"/></svg></div><h3>记账</h3><p>收支与转账、分类统计、预算提醒，支持导出 CSV。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-users"/></svg></div><h3>通讯录</h3><p>联系人分组管理与快速检索，常用信息随手可查。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-lock"/></svg></div><h3>保险箱</h3><p>敏感条目集中收纳，本地存储、按需查看。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-clean"/></svg></div><h3>C 盘清理</h3><p>临时文件、回收站、缩略图与缓存，扫描预览后再决定删什么。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-search"/></svg></div><h3>文件搜索</h3><p>建立本地索引，按类型、大小、日期筛选，增量更新。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-shield"/></svg></div><h3>整库加密</h3><p>为本地数据库加一层保护，重要内容不裸奔。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-file"/></svg></div><h3>DOCX 导出</h3><p>笔记与资料导出为 Word 文档，方便打印与分享。</p></article>
+        <article class="feat"><div class="feat-icon"><svg aria-hidden="true"><use href="#i-refresh"/></svg></div><h3>在线更新</h3><p>检查版本、下载校验、整目录替换，失败自动回滚。</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 系统要求 -->
+  <section class="band" aria-labelledby="req-title">
+    <div class="wrap req">
+      <div class="req-box">
+        <p class="sec-kicker" style="color:#7FD3B8">系统要求</p>
+        <h2 id="req-title">Windows 10 / 11 64 位</h2>
+        <p>绿色免安装，普通用户权限即可运行。</p>
+        <ul class="req-list">
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>Windows 10 或 Windows 11，64 位系统</span></li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>约 150 MB 磁盘空间（解压后）</span></li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>无需安装运行库，无需管理员权限</span></li>
+          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>天气与检查更新需要联网，其余功能完全离线</span></li>
+        </ul>
+      </div>
+      <div class="req-side">
+        <h3>下载前确认</h3>
+        <p>当前最新版本 <b class="js-version">最新版</b>，压缩包约 <b class="js-size">66 MB</b>。下载完成后建议先解压到临时目录，确认能启动再替换旧版本。</p>
+        <a class="btn btn-primary" href="https://github.com/mraphasia/whale-lamp-releases/releases/latest/download/whale-lamp-onedir.zip">
+          <svg aria-hidden="true"><use href="#i-download"/></svg>
+          前往下载
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div>
+        <div class="foot-brand">
+          <svg aria-hidden="true"><use href="#i-logo"/></svg>
+          鲸鱼灯
+        </div>
+        <p class="foot-meta">当前版本 <span class="js-version">最新版</span> · Windows 10 / 11 64 位</p>
+      </div>
+      <nav class="foot-links" aria-label="页脚导航">
+        <a href="https://github.com/mraphasia/whale-lamp-releases/releases" target="_blank" rel="noopener">更新说明</a>
+        <a href="https://github.com/mraphasia/whale-lamp-releases" target="_blank" rel="noopener">源码与仓库</a>
+        <a href="#install">安装说明</a>
+        <a href="#features">功能概览</a>
+      </nav>
+    </div>
+    <p class="foot-note">
+      <b>许可与免责：</b>本软件可免费使用。所有数据保存在你选择的本地目录，不上传服务器；请自行做好备份。
+      软件按“现状”提供，作者不对因使用或误删数据造成的损失承担责任。C 盘清理等涉及删除的功能请在预览确认后使用。
+    </p>
+    <p class="foot-meta">© <span id="year">2026</span> 鲸鱼灯 · 页面与软件版本会随 <span class="inline-code">latest.json</span> 自动更新</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var PERMANENT = "https://github.com/mraphasia/whale-lamp-releases/releases/latest/download/whale-lamp-onedir.zip";
+  var RELEASES = "https://github.com/mraphasia/whale-lamp-releases/releases";
+
+  function each(sel, fn) {
+    var list = document.querySelectorAll(sel);
+    for (var i = 0; i < list.length; i++) fn(list[i]);
+  }
+  function formatSize(bytes) {
+    var n = Number(bytes) || 0;
+    if (n <= 0) return "";
+    if (n >= 1024 * 1024 * 1024) return (n / 1073741824).toFixed(1) + " GB";
+    if (n >= 1024 * 1024) return (n / 1048576).toFixed(1) + " MB";
+    if (n >= 1024) return Math.round(n / 1024) + " KB";
+    return n + " B";
+  }
+  function baseName(url) {
+    try {
+      return String(url).split("?")[0].split("#")[0].split("/").pop() || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  try {
+    document.getElementById("year").textContent = String(new Date().getFullYear());
+  } catch (e) {}
+
+  // 版本号不写死：读取同目录 latest.json；失败时保留静态占位，不报错、不白屏。
+  if (typeof fetch !== "function") return;
+  fetch("latest.json", { cache: "no-store" })
+    .then(function (resp) {
+      if (!resp.ok) throw new Error("feed " + resp.status);
+      return resp.json();
+    })
+    .then(function (data) {
+      if (!data || !data.version) return;
+      var version = String(data.version);
+      each(".js-version", function (el) { el.textContent = version; });
+
+      var sizeText = formatSize(data.size);
+      if (sizeText) {
+        each(".js-size", function (el) { el.textContent = sizeText; });
+      }
+
+      var asset = baseName(data.url);
+      if (asset) {
+        each(".js-asset", function (el) { el.textContent = asset; });
+      }
+
+      var versioned = document.getElementById("dl-versioned");
+      if (data.url && versioned) {
+        versioned.href = data.url;
+        versioned.textContent = "下载 " + version + (sizeText ? "（" + sizeText + "）" : "");
+        versioned.hidden = false;
+      }
+
+      // 永久链接要求资产固定命名为 whale-lamp-onedir.zip。
+      // 若当前发布用的是带版本号的文件名，主按钮自动改用真实可下载的直链。
+      if (data.url && asset && asset !== "whale-lamp-onedir.zip") {
+        ["dl", "dl-card"].forEach(function (id) {
+          var btn = document.getElementById(id);
+          if (btn) {
+            btn.href = data.url;
+            btn.setAttribute("data-resolved", "versioned");
+          }
+        });
+        var note = document.querySelector(".hero-note span");
+        if (note) {
+          note.textContent = "已自动使用当前版本直链（" + asset + "）。永久地址 " +
+            "releases/latest/download/whale-lamp-onedir.zip 需要发布时把资产重命名为该固定名称。";
+        }
+      }
+    })
+    .catch(function () {
+      // 静默降级：保留「最新版 / 约 66 MB」占位与 Releases 链接。
+    });
+})();
+</script>
+</body>
+</html>
